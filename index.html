@@ -2,124 +2,84 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>글래스마켓 라벨 V15.1 (Final Edition)</title>
+    <title>글래스마켓 V22.0 (Resizable + System Fonts)</title>
     <script src="https://unpkg.com/fabric@5.3.0/dist/fabric.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         body { margin: 0; padding: 0; background: #f0f0f0; font-family: 'Pretendard', sans-serif; display: flex; flex-direction: column; align-items: center; }
-        .page {
-            width: 210mm; height: 297mm; background: white; margin: 20px; display: grid;
-            grid-template-columns: repeat(3, 63mm); grid-template-rows: repeat(4, 63mm);
-            padding: 15mm 6.5mm 16.02mm 6.5mm; column-gap: 4mm; row-gap: 4.66mm;
-            box-sizing: border-box; box-shadow: 0 0 20px rgba(0,0,0,0.2);
-        }
-
-        /* 원형 슬롯 고정 */
-        .circle-slot {
-            width: 63mm; height: 63mm; position: relative;
-            display: flex; justify-content: center; align-items: center;
-            overflow: hidden !important; border-radius: 50%;
-            border: 1px dashed #ff85b1; background: #fff;
-            -webkit-mask-image: radial-gradient(circle, white 100%, black 100%);
-            mask-image: radial-gradient(circle, white 100%, black 100%);
-        }
-
-        /* 컨트롤 패널 */
-        .controls { 
-            position: fixed; top: 10px; left: 10px; background: white; 
-            border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); 
-            z-index: 10000; width: 300px; min-width: 280px; min-height: 450px;
-            overflow: auto; resize: both;
-        }
-        .controls-header { background: #ff85b1; color: white; padding: 12px; cursor: move; font-weight: bold; text-align: center; border-radius: 12px 12px 0 0; }
+        .controls { position: fixed; top: 10px; left: 10px; background: white; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.4); z-index: 10000; width: 310px; min-width: 250px; max-width: 600px; max-height: 95vh; overflow: auto; resize: both; container-type: inline-size; }
+        .controls-header { background: linear-gradient(135deg, #ff85b1 0%, #ff7e5f 100%); color: white; padding: 15px; cursor: move; font-weight: bold; text-align: center; border-radius: 12px 12px 0 0; font-size: 5cqw; }
         .controls-content { padding: 15px; display: flex; flex-direction: column; gap: 10px; }
+        .switch-box { background: #f8f9fa; padding: 10px; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; font-size: 4cqw; font-weight: bold; border: 1px solid #eee; }
+        .btn-main { background: #ffffff; border: 2px solid #ff85b1; color: #ff85b1; width: 100%; font-size: 4cqw; padding: 3cqw; cursor: pointer; font-weight: bold; border-radius: 8px; transition: 0.2s; }
+        .btn-main:hover { background: #ff85b1; color: white; }
+        .btn-group-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; }
+        .btn-sub { padding: 2.5cqw 0; border: none; border-radius: 6px; font-weight: bold; font-size: 3.5cqw; cursor: pointer; }
+        .btn-undo { background: #e7f5ff; color: #1971c2; }
+        .btn-del { background: #fff5f5; color: #fa5252; }
+        .btn-clear { background: #f1f3f5; color: #495057; }
+        .btn-save-max { background: linear-gradient(to right, #ff7e5f, #feb47b); color: white; padding: 4cqw; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 4.5cqw; margin-top: 5px; box-shadow: 0 4px 10px rgba(255, 126, 95, 0.3); }
+        .btn-print-direct { background: white; border: 2px solid #ff7e5f; color: #ff7e5f; padding: 3cqw; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 4cqw; transition: 0.2s; margin-top: 5px; }
+        .text-panel { background: #fff0f6; padding: 10px; border-radius: 8px; border: 1px solid #ffdeeb; display: flex; flex-direction: column; gap: 8px; }
+        .select-input { padding: 2cqw; border: 1px solid #ddd; border-radius: 6px; font-size: 3.5cqw; }
         
-        .switch-box { background: #f8f9fa; padding: 0.8em; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; font-size: 0.9em; border: 1px solid #eee; font-weight: bold; }
-        .btn-group { display: flex; gap: 5px; }
-        .btn { flex: 1; padding: 0.8em 0.4em; cursor: pointer; border: none; border-radius: 6px; font-weight: bold; font-size: 0.85em; transition: 0.2s; }
-        .btn-undo { background: #c9d8ff; color: #3b5bdb; } 
-        .btn-del { background: #fff3c9; color: #8a6d10; } 
-        .btn-clear { background: #ffd1c9; color: #c92a2a; }
-
-        .btn-main { background: #f8f9fa; border: 1px solid #dee2e6; width: 100%; font-size: 0.85em; padding: 0.8em; cursor: pointer; font-weight: bold; border-radius: 6px; }
-        .btn-print { background: #ff85b1; color: white; padding: 1em; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 1.1em; margin-top: 5px; box-shadow: 0 4px 10px rgba(255, 133, 177, 0.3); }
+        /* 시스템 글꼴 버튼 스타일 추가 */
+        .btn-font-sync { background: #ffe3e3; border: 1px dashed #ff85b1; color: #ff85b1; font-size: 2.8cqw; padding: 5px; border-radius: 4px; cursor: pointer; font-weight: bold; }
         
-        /* 인쇄 안내 문구 스타일 */
-        .print-warning { background: #fff9db; padding: 10px; border-radius: 8px; border: 1px solid #ffec99; font-size: 0.82em; line-height: 1.5; color: #856404; margin-top: 5px; }
-        .print-warning b { color: #e67700; display: block; margin-bottom: 4px; font-size: 0.9em; }
-
-        .text-panel { background: #fff8fa; padding: 10px; border-radius: 8px; border: 1px solid #ffe0eb; display: flex; flex-direction: column; gap: 8px; }
-        .select-input { padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.85em; }
-
-        .switch { position: relative; display: inline-block; width: 40px; height: 20px; }
+        .switch { position: relative; display: inline-block; width: 40px; height: 20px; flex-shrink: 0; }
         .switch input { opacity: 0; width: 0; height: 0; }
         .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 20px; }
         .slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
         input:checked + .slider { background-color: #ff85b1; }
         input:checked + .slider:before { transform: translateX(20px); }
-
-        .individual-btn { position: absolute; top: 8%; z-index: 100; background: rgba(255, 133, 177, 0.9); color: white; border: none; padding: 4px 10px; border-radius: 20px; font-size: 11px; cursor: pointer; }
-        .sync-wrapper { position: absolute; bottom: 8%; z-index: 100; font-size: 11px; background: white; padding: 3px 8px; border-radius: 20px; border: 1px solid #eee; cursor: pointer; display: flex; align-items: center; gap: 4px; }
-
-        @media print {
-            @page { size: A4; margin: 0; }
-            .no-print { display: none !important; }
-            .page { margin: 0 !important; border: none !important; box-shadow: none !important; }
-            .circle-slot { -webkit-mask-image: none !important; mask-image: none !important; border: none !important; }
-            body:not(.bleed-active) .circle-slot { border-radius: 50% !important; overflow: hidden !important; clip-path: circle(50%); }
-        }
+        .info-box { background:#fff9db; padding:10px; border-radius:8px; font-size:3.2cqw; color: #856404; border: 1px solid #ffec99; line-height: 1.4; }
+        .page { width: 210mm; height: 297mm; background: white; margin: 20px; display: grid; grid-template-columns: repeat(3, 63mm); grid-template-rows: repeat(4, 63mm); padding: 15mm 6.5mm 16.02mm 6.5mm; column-gap: 4mm; row-gap: 4.66mm; box-sizing: border-box; box-shadow: 0 0 30px rgba(0,0,0,0.3); position: relative; }
+        .circle-slot { width: 63mm; height: 63mm; position: relative; display: flex; justify-content: center; align-items: center; border-radius: 50%; border: 1px dashed #ff85b1; background: #fff; overflow: hidden; }
+        .individual-btn { position: absolute; top: 5px; z-index: 100; background: rgba(0,0,0,0.6); color: white; border: none; padding: 2px 8px; border-radius: 4px; font-size: 10px; cursor: pointer; }
+        .sync-wrapper { position: absolute; bottom: 5px; z-index: 100; font-size: 10px; background: white; padding: 2px 8px; border-radius: 20px; border: 1px solid #eee; cursor: pointer; display: flex; align-items: center; gap: 4px; }
+        @media print { .no-print { display: none !important; } body { background: white; } .page { margin: 0; box-shadow: none; border: none; } }
     </style>
 </head>
-<body class="bleed-active">
+<body>
 
 <div class="controls no-print" id="dragBox">
-    <div class="controls-header" id="dragHandle">✨ 라벨 에디터 V15.1</div>
+    <div class="controls-header" id="dragHandle">✨글래스마켓 라벨에디터 V22.0</div>
     <div class="controls-content">
         <div class="switch-box">
-            <span>🛡️ 오차 방지 모드 (도련)</span>
-            <label class="switch"><input type="checkbox" id="bleedToggle" checked onchange="updateBleedMode()"><span class="slider"></span></label>
+            <span>🛡️오차 방지 기능 (2mm 확장)</span>
+            <label class="switch"><input type="checkbox" id="bleedToggle" checked><span class="slider"></span></label>
         </div>
         <div class="switch-box">
             <span>🔗 모든 칸 동기화</span>
             <label class="switch"><input type="checkbox" id="allSyncToggle" checked onchange="toggleAllSync(this.checked)"><span class="slider"></span></label>
         </div>
-        
-        <button class="btn-main" onclick="document.getElementById('fileAll').click()">🖼️ 한꺼번에 사진 채우기</button>
+        <button class="btn-main" onclick="document.getElementById('fileAll').click()">🖼️ 사진 일괄 등록</button>
         <input type="file" id="fileAll" accept="image/*" style="display:none;" onchange="loadAllImages(event)">
         
-        <div class="btn-group">
-            <button class="btn btn-undo" onclick="undo()">↩️ 이전</button>
-            <button class="btn btn-del" onclick="deleteSelected()">🗑️ 삭제</button>
-            <button class="btn btn-clear" onclick="clearAll()">🔥 초기화</button>
+        <div class="btn-group-row">
+            <button class="btn-sub btn-undo" onclick="undo()">↩️ 취소</button>
+            <button class="btn-sub btn-del" onclick="deleteSelected()">🗑️ 삭제</button>
+            <button class="btn-sub btn-clear" onclick="clearAll()">🔥 초기화</button>
         </div>
 
         <div class="text-panel">
             <button class="btn-main" style="background:#ff85b1; color:white; border:none;" onclick="addText()">➕ 글상자 추가</button>
-            <select id="fontSelect" class="select-input" onchange="updateFont()">
-                <option value="Pretendard">Pretendard (기본)</option>
-                <option value="Nanum Gothic">나눔고딕</option>
-                <option value="Nanum Myeongjo">나눔명조</option>
-                <option value="Gungsuh">궁서체</option>
-                <option value="Arial">Arial</option>
-                <option value="Verdana">Verdana</option>
-            </select>
-            <input type="color" id="textColor" value="#000000" style="width:100%; height:30px; border:none; cursor:pointer;" onchange="updateTextColor()">
+            <div style="display:flex; gap:5px;">
+                <select id="fontSelect" class="select-input" style="flex:2;" onchange="updateFont()">
+                    <option value="Pretendard">Pretendard</option>
+                    <option value="Gungsuh">궁서체</option>
+                </select>
+                <input type="color" id="textColor" value="#000000" style="flex:1; height:35px; border:none; cursor:pointer;" onchange="updateTextColor()">
+            </div>
+            <button class="btn-font-sync" onclick="loadSystemFonts()">🔄 PC 글꼴 동기화</button>
         </div>
 
-        <div class="save-grid" style="display:grid; grid-template-columns: repeat(3, 1fr); gap:4px;">
-            <button class="btn btn-save" style="background:#e3e3e3;" onclick="exportFile('png')">PNG</button>
-            <button class="btn btn-save" style="background:#e3e3e3;" onclick="exportFile('jpg')">JPG</button>
-            <button class="btn btn-save" style="background:#e3e3e3;" onclick="exportFile('pdf')">PDF</button>
-        </div>
-        
-        <button class="btn-print" onclick="window.print()">🖨️ 고품질 인쇄하기</button>
+        <button class="btn-save-max" onclick="exportLossless()">💾 초고화질 PDF 저장</button>
+        <button class="btn-print-direct" onclick="window.print()">🖨️ 바로 인쇄하기</button>
 
-        <div class="print-warning">
-            <b>⚠️ 인쇄 전 꼭 확인하세요!</b>
-            1. 배율: <b>'기본값(100%)'</b> 설정<br>
-            2. 여백: <b>'없음'</b>으로 설정<br>
-            3. 옵션: <b>'배경 그래픽'</b> 체크 활성화
+        <div class="info-box">
+            <b>💡 인쇄 설정 TIP !</b><br>
+            배율 : 100 %<br> 여백 : 없음 <br> 배경그래픽 : 체크 활성
         </div>
     </div>
 </div>
@@ -127,14 +87,14 @@
 <div class="page" id="labelPage">
     <script>
         const canvases = [];
-        const SIZE = 238; 
+        const SIZE = 350; 
         const CENTER = SIZE / 2;
         let historyStack = [];
 
         for (let i = 0; i < 12; i++) {
             document.write(`
                 <div class="circle-slot" id="slot${i}">
-                    <button class="individual-btn no-print" onclick="document.getElementById('file${i}').click()">사진 선택</button>
+                    <button class="individual-btn no-print" onclick="document.getElementById('file${i}').click()">교체</button>
                     <div class="sync-wrapper no-print" onclick="manualSyncToggle(${i})">
                         <input type="checkbox" class="sync-check" id="sync${i}" checked> <label>동기화</label>
                     </div>
@@ -146,40 +106,111 @@
 
         window.onload = function() {
             for (let i = 0; i < 12; i++) {
-                const canvas = new fabric.Canvas('canvas' + i, { width: SIZE, height: SIZE, backgroundColor: 'transparent' });
-                updateCanvasClip(canvas);
+                const canvas = new fabric.Canvas('canvas' + i, { width: SIZE, height: SIZE, selection: true });
+                canvas.clipPath = new fabric.Circle({ radius: CENTER, left: CENTER, top: CENTER, originX: 'center', originY: 'center', absolutePositioned: true });
+                
                 canvas.on('mouse:wheel', (opt) => {
                     const delta = opt.e.deltaY;
-                    let zoom = canvas.getZoom() * Math.pow(0.9995, delta);
-                    zoom = Math.min(Math.max(zoom, 0.01), 10);
+                    let zoom = canvas.getZoom() * Math.pow(0.999, delta);
+                    zoom = Math.max(zoom, 1.0); 
+                    zoom = Math.min(zoom, 15);
                     const point = new fabric.Point(CENTER, CENTER);
                     if (document.getElementById('sync' + i).checked) {
-                        canvases.forEach((c, idx) => { if (document.getElementById('sync' + idx).checked) { c.zoomToPoint(point, zoom); c.renderAll(); } });
-                    } else { canvas.zoomToPoint(point, zoom); canvas.renderAll(); }
-                    saveState(); opt.e.preventDefault();
+                        canvases.forEach((c, idx) => { 
+                            if (document.getElementById('sync' + idx).checked) { 
+                                c.zoomToPoint(point, zoom); 
+                                c.renderAll(); 
+                            } 
+                        });
+                    } else { 
+                        canvas.zoomToPoint(point, zoom); 
+                        canvas.renderAll(); 
+                    }
+                    opt.e.preventDefault();
                 });
+                
                 canvas.on('object:modified', saveState);
+                canvas.on('object:moving', (e) => syncObjects(i, e));
+                canvas.on('object:scaling', (e) => syncObjects(i, e));
+                canvas.on('object:rotating', (e) => syncObjects(i, e));
                 canvases.push(canvas);
             }
-            updateBleedMode();
             saveState();
             initDraggable(document.getElementById("dragBox"));
         };
 
-        function updateCanvasClip(canvas) {
-            const isBleed = document.getElementById('bleedToggle').checked;
-            canvas.clipPath = isBleed ? null : new fabric.Circle({ radius: CENTER, left: CENTER, top: CENTER, originX: 'center', originY: 'center', absolutePositioned: true });
-            canvas.renderAll();
+        // 시스템 글꼴 로드 함수
+        async function loadSystemFonts() {
+            if (!window.queryLocalFonts) {
+                alert("이 브라우저는 시스템 글꼴 기능을 지원하지 않습니다. (최신 크롬 권장)");
+                return;
+            }
+            try {
+                const fonts = await window.queryLocalFonts();
+                const fontSelect = document.getElementById('fontSelect');
+                const uniqueFonts = [...new Set(fonts.map(f => f.family))].sort();
+                
+                uniqueFonts.forEach(font => {
+                    const opt = document.createElement('option');
+                    opt.value = font;
+                    opt.textContent = font;
+                    fontSelect.appendChild(opt);
+                });
+                alert(uniqueFonts.length + "개의 글꼴을 불러왔습니다!");
+            } catch (e) {
+                alert("글꼴 접근 권한이 필요합니다.");
+            }
         }
 
-        function updateBleedMode() {
-            const isBleed = document.getElementById('bleedToggle').checked;
-            document.body.classList.toggle('bleed-active', isBleed);
-            canvases.forEach(canvas => updateCanvasClip(canvas));
+        function saveState() {
+            const state = canvases.map(c => JSON.stringify(c.toJSON()));
+            historyStack.push(state);
+            if (historyStack.length > 20) historyStack.shift();
+        }
+
+        function undo() {
+            if (historyStack.length <= 1) return;
+            historyStack.pop();
+            const lastState = historyStack[historyStack.length - 1];
+            lastState.forEach((json, i) => {
+                canvases[i].loadFromJSON(json, () => {
+                    canvases[i].clipPath = new fabric.Circle({ radius: CENTER, left: CENTER, top: CENTER, originX: 'center', originY: 'center', absolutePositioned: true });
+                    canvases[i].renderAll();
+                });
+            });
+        }
+
+        function deleteSelected() {
+            canvases.forEach(c => {
+                c.getActiveObjects().forEach(obj => c.remove(obj));
+                c.discardActiveObject().renderAll();
+            });
+            saveState();
+        }
+
+        function clearAll() {
+            if(confirm("모든 편집 내용을 삭제할까요?")) {
+                canvases.forEach(c => c.clear());
+                saveState();
+            }
         }
 
         function toggleAllSync(isChecked) { document.querySelectorAll('.sync-check').forEach(chk => chk.checked = isChecked); }
         function manualSyncToggle(i) { const chk = document.getElementById('sync' + i); chk.checked = !chk.checked; }
+
+        function syncObjects(masterIdx, e) {
+            if (!document.getElementById('sync' + masterIdx).checked) return;
+            const masterObj = e.target;
+            const objIdx = canvases[masterIdx].getObjects().indexOf(masterObj);
+            canvases.forEach((canvas, idx) => {
+                if (idx === masterIdx || !document.getElementById('sync' + idx).checked) return;
+                const targetObj = canvas.getObjects()[objIdx];
+                if (targetObj) {
+                    targetObj.set({ left: masterObj.left, top: masterObj.top, scaleX: masterObj.scaleX, scaleY: masterObj.scaleY, angle: masterObj.angle });
+                    canvas.renderAll();
+                }
+            });
+        }
 
         function loadImage(event, index) {
             const file = event.target.files[0]; if (!file) return;
@@ -187,9 +218,10 @@
             reader.onload = (f) => {
                 fabric.Image.fromURL(f.target.result, (img) => {
                     img.set({ originX: 'center', originY: 'center', left: CENTER, top: CENTER });
-                    img.scale(SIZE / Math.min(img.width, img.height));
-                    canvases[index].add(img).setActiveObject(img); 
-                    canvases[index].renderAll(); saveState();
+                    const scale = SIZE / Math.min(img.width, img.height);
+                    img.scale(scale);
+                    canvases[index].add(img).setActiveObject(img);
+                    saveState();
                 });
             };
             reader.readAsDataURL(file);
@@ -202,8 +234,9 @@
                 canvases.forEach(canvas => {
                     fabric.Image.fromURL(f.target.result, (img) => {
                         img.set({ originX: 'center', originY: 'center', left: CENTER, top: CENTER });
-                        img.scale(SIZE / Math.min(img.width, img.height));
-                        canvas.add(img); canvas.renderAll();
+                        const scale = SIZE / Math.min(img.width, img.height);
+                        img.scale(scale);
+                        canvas.add(img);
                     });
                 });
                 setTimeout(saveState, 500);
@@ -212,76 +245,76 @@
         }
 
         function addText() {
-            const text = new fabric.IText('문구 입력', { 
+            const text = new fabric.IText('텍스트입력', { 
                 left: CENTER, top: CENTER, originX: 'center', originY: 'center', 
-                fontSize: 25, fontFamily: document.getElementById('fontSelect').value,
-                fill: document.getElementById('textColor').value 
+                fontSize: 25, fontFamily: document.getElementById('fontSelect').value, fill: document.getElementById('textColor').value 
             });
-            canvases[0].add(text).setActiveObject(text); canvases[0].renderAll(); saveState();
+            canvases.forEach(c => { c.add(text); c.renderAll(); });
+            saveState();
         }
 
         function updateFont() {
             const font = document.getElementById('fontSelect').value;
-            canvases.forEach(canvas => {
-                canvas.getActiveObjects().forEach(obj => { if (obj.type === 'i-text') obj.set('fontFamily', font); });
-                canvas.renderAll();
-            });
+            canvases.forEach(canvas => { canvas.getObjects('i-text').forEach(obj => obj.set('fontFamily', font)); canvas.renderAll(); });
             saveState();
         }
 
         function updateTextColor() {
             const color = document.getElementById('textColor').value;
-            canvases.forEach(canvas => {
-                canvas.getActiveObjects().forEach(obj => { if (obj.type === 'i-text') obj.set('fill', color); });
-                canvas.renderAll();
-            });
+            canvases.forEach(canvas => { canvas.getObjects('i-text').forEach(obj => obj.set('fill', color)); canvas.renderAll(); });
+            saveState();
         }
 
-        function saveState() {
-            const state = canvases.map(c => JSON.stringify(c.toJSON()));
-            if (historyStack.length > 0 && JSON.stringify(historyStack[historyStack.length-1]) === JSON.stringify(state)) return;
-            historyStack.push(state); if (historyStack.length > 15) historyStack.shift();
-        }
+        async function exportLossless() {
+            const btn = event.target;
+            const originalText = btn.innerText;
+            btn.innerText = "렌더링 중..."; btn.disabled = true;
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const offCanvas = document.createElement('canvas');
+            const offCtx = offCanvas.getContext('2d');
+            offCanvas.width = 2480; offCanvas.height = 3508;
+            offCtx.fillStyle = "white"; offCtx.fillRect(0, 0, offCanvas.width, offCanvas.height);
+            const scaleFactor = offCanvas.width / 210;
+            const isBleed = document.getElementById('bleedToggle').checked;
+            const bleedMargin = 1.0 * scaleFactor; 
 
-        function undo() {
-            if (historyStack.length <= 1) return;
-            historyStack.pop();
-            const prev = historyStack[historyStack.length - 1];
-            prev.forEach((json, i) => { canvases[i].loadFromJSON(json, () => { updateCanvasClip(canvases[i]); canvases[i].renderAll(); }); });
-        }
+            for (let i = 0; i < 12; i++) {
+                const col = i % 3; const row = Math.floor(i / 3);
+                const startX = 6.5 * scaleFactor; const startY = 15 * scaleFactor;
+                const slotW = 63 * scaleFactor; const gapX = 4 * scaleFactor; const gapY = 4.66 * scaleFactor;
+                const posX = startX + (col * (slotW + gapX));
+                const posY = startY + (row * (slotW + gapY));
+                const finalRadius = isBleed ? (slotW / 2) + bleedMargin : (slotW / 2);
+                const drawSize = isBleed ? slotW + (bleedMargin * 2) : slotW;
+                const drawPosX = isBleed ? posX - bleedMargin : posX;
+                const drawPosY = isBleed ? posY - bleedMargin : posY;
 
-        function deleteSelected() { canvases.forEach(c => { c.getActiveObjects().forEach(obj => c.remove(obj)); c.discardActiveObject().renderAll(); }); saveState(); }
-        function clearAll() { if(confirm("모든 작업을 초기화할까요?")) { canvases.forEach(c => { c.clear(); updateCanvasClip(c); }); saveState(); } }
-
-        async function exportFile(format) {
-            const page = document.getElementById('labelPage');
-            const noPrint = document.querySelectorAll('.no-print');
-            const slots = document.querySelectorAll('.circle-slot');
-            noPrint.forEach(el => el.style.opacity = '0');
-            slots.forEach(s => { s.style.webkitMaskImage = 'none'; s.style.maskImage = 'none'; });
-            const canvasCap = await html2canvas(page, { scale: 3, useCORS: true, backgroundColor: "#ffffff" });
-            if (format === 'pdf') {
-                const { jsPDF } = window.jspdf;
-                const pdf = new jsPDF('p', 'mm', 'a4');
-                pdf.addImage(canvasCap.toDataURL('image/jpeg', 1.0), 'JPEG', 0, 0, 210, 297);
-                pdf.save('label.pdf');
-            } else {
-                const link = document.createElement('a');
-                link.download = `label.${format}`;
-                link.href = canvasCap.toDataURL(format==='jpg'?'image/jpeg':'image/png', 1.0);
-                link.click();
+                const dataURL = canvases[i].toDataURL({ format: 'png', multiplier: drawSize / SIZE });
+                const img = await new Promise(resolve => { const img = new Image(); img.onload = () => resolve(img); img.src = dataURL; });
+                offCtx.save();
+                offCtx.beginPath();
+                offCtx.arc(posX + (slotW/2), posY + (slotW/2), finalRadius, 0, Math.PI * 2);
+                offCtx.clip();
+                offCtx.drawImage(img, drawPosX, drawPosY, drawSize, drawSize);
+                offCtx.restore();
             }
-            slots.forEach(s => { s.style.webkitMaskImage = 'radial-gradient(circle, white 100%, black 100%)'; s.style.maskImage = 'radial-gradient(circle, white 100%, black 100%)'; });
-            noPrint.forEach(el => el.style.opacity = '1');
+            pdf.addImage(offCanvas.toDataURL('image/jpeg', 1.0), 'JPEG', 0, 0, 210, 297, undefined, 'SLOW');
+            pdf.save('glassmarket_v22.pdf');
+            btn.innerText = originalText; btn.disabled = false;
         }
 
         function initDraggable(el) {
             let p1 = 0, p2 = 0, p3 = 0, p4 = 0; const h = document.getElementById("dragHandle");
             h.onmousedown = (e) => { 
                 if (e.target !== h) return;
-                e.preventDefault(); p3 = e.clientX; p4 = e.clientY; 
+                e.preventDefault(); 
+                p3 = e.clientX; p4 = e.clientY; 
                 document.onmouseup = () => { document.onmouseup = null; document.onmousemove = null; }; 
-                document.onmousemove = (e) => { p1 = p3 - e.clientX; p2 = p4 - e.clientY; p3 = e.clientX; p4 = e.clientY; el.style.top = (el.offsetTop - p2) + "px"; el.style.left = (el.offsetLeft - p1) + "px"; }; 
+                document.onmousemove = (e) => { 
+                    p1 = p3 - e.clientX; p2 = p4 - e.clientY; p3 = e.clientX; p4 = e.clientY; 
+                    el.style.top = (el.offsetTop - p2) + "px"; el.style.left = (el.offsetLeft - p1) + "px"; 
+                }; 
             };
         }
     </script>

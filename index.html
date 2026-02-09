@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>글래스마켓 라벨 V15.0 (Final Edition)</title>
+    <title>글래스마켓 라벨 V15.1 (Final Edition)</title>
     <script src="https://unpkg.com/fabric@5.3.0/dist/fabric.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -25,12 +25,12 @@
             mask-image: radial-gradient(circle, white 100%, black 100%);
         }
 
-        /* 컨트롤 패널 - 리사이즈 가능하도록 수정 */
+        /* 컨트롤 패널 */
         .controls { 
             position: fixed; top: 10px; left: 10px; background: white; 
             border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); 
-            z-index: 10000; width: 280px; min-width: 250px; min-height: 400px;
-            overflow: auto; resize: both; /* 크기 조절 가능 */
+            z-index: 10000; width: 300px; min-width: 280px; min-height: 450px;
+            overflow: auto; resize: both;
         }
         .controls-header { background: #ff85b1; color: white; padding: 12px; cursor: move; font-weight: bold; text-align: center; border-radius: 12px 12px 0 0; }
         .controls-content { padding: 15px; display: flex; flex-direction: column; gap: 10px; }
@@ -41,12 +41,14 @@
         .btn-undo { background: #c9d8ff; color: #3b5bdb; } 
         .btn-del { background: #fff3c9; color: #8a6d10; } 
         .btn-clear { background: #ffd1c9; color: #c92a2a; }
-        .btn:hover { opacity: 0.8; }
 
         .btn-main { background: #f8f9fa; border: 1px solid #dee2e6; width: 100%; font-size: 0.85em; padding: 0.8em; cursor: pointer; font-weight: bold; border-radius: 6px; }
-        .btn-print { background: #ff85b1; color: white; padding: 1em; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 1em; margin-top: 5px; box-shadow: 0 4px 10px rgba(255, 133, 177, 0.3); }
+        .btn-print { background: #ff85b1; color: white; padding: 1em; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 1.1em; margin-top: 5px; box-shadow: 0 4px 10px rgba(255, 133, 177, 0.3); }
         
-        /* 글꼴 설정 영역 */
+        /* 인쇄 안내 문구 스타일 */
+        .print-warning { background: #fff9db; padding: 10px; border-radius: 8px; border: 1px solid #ffec99; font-size: 0.82em; line-height: 1.5; color: #856404; margin-top: 5px; }
+        .print-warning b { color: #e67700; display: block; margin-bottom: 4px; font-size: 0.9em; }
+
         .text-panel { background: #fff8fa; padding: 10px; border-radius: 8px; border: 1px solid #ffe0eb; display: flex; flex-direction: column; gap: 8px; }
         .select-input { padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.85em; }
 
@@ -72,10 +74,10 @@
 <body class="bleed-active">
 
 <div class="controls no-print" id="dragBox">
-    <div class="controls-header" id="dragHandle">✨ 라벨 에디터 V15.0</div>
+    <div class="controls-header" id="dragHandle">✨ 라벨 에디터 V15.1</div>
     <div class="controls-content">
         <div class="switch-box">
-            <span>🛡️ 오차 방지 모드</span>
+            <span>🛡️ 오차 방지 모드 (도련)</span>
             <label class="switch"><input type="checkbox" id="bleedToggle" checked onchange="updateBleedMode()"><span class="slider"></span></label>
         </div>
         <div class="switch-box">
@@ -101,18 +103,24 @@
                 <option value="Gungsuh">궁서체</option>
                 <option value="Arial">Arial</option>
                 <option value="Verdana">Verdana</option>
-                <option value="Courier New">Courier New</option>
             </select>
             <input type="color" id="textColor" value="#000000" style="width:100%; height:30px; border:none; cursor:pointer;" onchange="updateTextColor()">
         </div>
 
         <div class="save-grid" style="display:grid; grid-template-columns: repeat(3, 1fr); gap:4px;">
-            <button class="btn btn-save" style="background:#e3e3e3;" onclick="exportFile('png')">PNG 저장</button>
-            <button class="btn btn-save" style="background:#e3e3e3;" onclick="exportFile('jpg')">JPG 저장</button>
-            <button class="btn btn-save" style="background:#e3e3e3;" onclick="exportFile('pdf')">PDF 저장</button>
+            <button class="btn btn-save" style="background:#e3e3e3;" onclick="exportFile('png')">PNG</button>
+            <button class="btn btn-save" style="background:#e3e3e3;" onclick="exportFile('jpg')">JPG</button>
+            <button class="btn btn-save" style="background:#e3e3e3;" onclick="exportFile('pdf')">PDF</button>
         </div>
         
-        <button class="btn-print" onclick="window.print()">🖨️ 고화질 인쇄하기</button>
+        <button class="btn-print" onclick="window.print()">🖨️ 고품질 인쇄하기</button>
+
+        <div class="print-warning">
+            <b>⚠️ 인쇄 전 꼭 확인하세요!</b>
+            1. 배율: <b>'기본값(100%)'</b> 설정<br>
+            2. 여백: <b>'없음'</b>으로 설정<br>
+            3. 옵션: <b>'배경 그래픽'</b> 체크 활성화
+        </div>
     </div>
 </div>
 
@@ -140,7 +148,6 @@
             for (let i = 0; i < 12; i++) {
                 const canvas = new fabric.Canvas('canvas' + i, { width: SIZE, height: SIZE, backgroundColor: 'transparent' });
                 updateCanvasClip(canvas);
-
                 canvas.on('mouse:wheel', (opt) => {
                     const delta = opt.e.deltaY;
                     let zoom = canvas.getZoom() * Math.pow(0.9995, delta);

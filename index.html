@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>글래스마켓 V28.9 (가이드 복구)</title>
+    <title>글래스마켓 V28.9 (텍스트 편집 수정본)</title>
     <script src="https://unpkg.com/fabric@5.3.0/dist/fabric.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
@@ -97,17 +97,23 @@
 
     window.onload = function() {
         for (let i = 0; i < 12; i++) {
-            const canvas = new fabric.Canvas('canvas' + i, { width: 238, height: 238, centeredScaling: true, centeredRotation: true });
+            const canvas = new fabric.Canvas('canvas' + i, { 
+                width: 238, 
+                height: 238, 
+                centeredScaling: true, 
+                centeredRotation: true,
+                enableRetinaScaling: true
+            });
             
-            // [복구] 원형 마스크 가이드 - 화면 편집 시에는 무조건 동그랗게 보이게 함
             canvas.clipPath = new fabric.Circle({ radius: 119, left: 119, top: 119, originX: 'center', originY: 'center', absolutePositioned: true });
 
             canvas.on('mouse:wheel', function(opt) {
                 const delta = opt.e.deltaY;
-                const activeObj = canvas.getActiveObject() || canvas.getObjects()[0];
+                const activeObj = canvas.getActiveObject();
                 if (!activeObj) return;
                 let scale = activeObj.scaleX * Math.pow(0.999, delta);
                 if (scale < 0.01) scale = 0.01;
+                
                 if (document.getElementById('sync' + i).checked) {
                     const objIdx = canvas.getObjects().indexOf(activeObj);
                     canvases.forEach((c, idx) => {
@@ -120,6 +126,7 @@
                 opt.e.preventDefault(); opt.e.stopPropagation();
             });
 
+            // 객체 변형(이동, 크기, 회전) 동기화
             const syncHandler = (e) => {
                 if (!document.getElementById('sync' + i).checked) return;
                 const obj = e.target;
@@ -128,13 +135,41 @@
                     if (idx !== i && document.getElementById('sync' + idx).checked) {
                         const targetObj = c.getObjects()[objIdx];
                         if (targetObj) {
-                            targetObj.set({ left: obj.left, top: obj.top, scaleX: obj.scaleX, scaleY: obj.scaleY, angle: obj.angle });
+                            targetObj.set({ 
+                                left: obj.left, 
+                                top: obj.top, 
+                                scaleX: obj.scaleX, 
+                                scaleY: obj.scaleY, 
+                                angle: obj.angle 
+                            });
                             c.renderAll();
                         }
                     }
                 });
             };
-            canvas.on('object:moving', syncHandler); canvas.on('object:scaling', syncHandler); canvas.on('object:rotating', syncHandler);
+
+            // 텍스트 내용 수정 동기화 (추가된 부분)
+            const textSyncHandler = (e) => {
+                if (!document.getElementById('sync' + i).checked) return;
+                const obj = e.target;
+                if (obj.type !== 'i-text') return;
+                const objIdx = canvas.getObjects().indexOf(obj);
+                canvases.forEach((c, idx) => {
+                    if (idx !== i && document.getElementById('sync' + idx).checked) {
+                        const targetObj = c.getObjects()[objIdx];
+                        if (targetObj && targetObj.type === 'i-text') {
+                            targetObj.set('text', obj.text);
+                            c.renderAll();
+                        }
+                    }
+                });
+            };
+
+            canvas.on('object:moving', syncHandler); 
+            canvas.on('object:scaling', syncHandler); 
+            canvas.on('object:rotating', syncHandler);
+            canvas.on('text:changed', textSyncHandler); // 타이핑 중 실시간 반영
+
             canvases.push(canvas);
         }
         initDraggable(document.getElementById("dragBox"));
@@ -166,15 +201,72 @@
     }
 
     function toggleAllSync(val) { document.querySelectorAll('.sync-check').forEach(c => c.checked = val); }
-    function addText() { const text = new fabric.IText('텍스트', { left: 119, top: 119, originX: 'center', originY: 'center', fontSize: 30, fontFamily: 'Pretendard', fill: document.getElementById('textColor').value }); canvases.forEach(c => { c.add(text); c.renderAll(); }); }
-    function updateFont() { const font = document.getElementById('fontSelect').value; canvases.forEach(c => { c.getObjects('i-text').forEach(obj => obj.set('fontFamily', font)); c.renderAll(); }); }
-    function updateTextColor() { const color = document.getElementById('textColor').value; canvases.forEach(c => { c.getObjects('i-text').forEach(obj => obj.set('fill', color)); c.renderAll(); }); }
-    function clearAll() { if(confirm("초기화?")) { canvases.forEach(c => { c.clear(); c.renderAll(); }); } }
-    function deleteSelected() { canvases.forEach(c => { c.getActiveObjects().forEach(obj => c.remove(obj)); c.discardActiveObject().renderAll(); }); }
-    async function loadSystemFonts() { if (!window.queryLocalFonts) return alert("크롬 브라우저 전용"); try { const fonts = await window.queryLocalFonts(); const fontSelect = document.getElementById('fontSelect'); [...new Set(fonts.map(f => f.family))].sort().forEach(font => { const opt = document.createElement('option'); opt.value = font; opt.textContent = font; fontSelect.appendChild(opt); }); alert("완료"); } catch (e) { alert("거부"); } }
+
+    function addText() { 
+        const font = document.getElementById('fontSelect').value;
+        const color = document.getElementById('textColor').value;
+        
+        // IText 객체 생성 (더블클릭 편집 가능)
+        canvases.forEach((c, idx) => {
+            const text = new fabric.IText('텍스트 입력', { 
+                left: 119, 
+                top: 119, 
+                originX: 'center', 
+                originY: 'center', 
+                fontSize: 30, 
+                fontFamily: font, 
+                fill: color,
+                editable: true // 편집 가능 속성 명시
+            });
+            c.add(text); 
+            if(idx === 0) c.setActiveObject(text);
+            c.renderAll(); 
+        }); 
+    }
+
+    function updateFont() { 
+        const font = document.getElementById('fontSelect').value; 
+        canvases.forEach(c => { 
+            c.getObjects('i-text').forEach(obj => obj.set('fontFamily', font)); 
+            c.renderAll(); 
+        }); 
+    }
+
+    function updateTextColor() { 
+        const color = document.getElementById('textColor').value; 
+        canvases.forEach(c => { 
+            c.getObjects('i-text').forEach(obj => obj.set('fill', color)); 
+            c.renderAll(); 
+        }); 
+    }
+
+    function clearAll() { if(confirm("초기화하시겠습니까?")) { canvases.forEach(c => { c.clear(); c.renderAll(); }); } }
+    function deleteSelected() { 
+        canvases.forEach(c => { 
+            const activeObjects = c.getActiveObjects();
+            if (activeObjects.length > 0) {
+                // 동기화 상태라면 같은 인덱스의 객체들을 모두 삭제
+                activeObjects.forEach(obj => {
+                    const objIdx = c.getObjects().indexOf(obj);
+                    canvases.forEach((otherC, otherIdx) => {
+                        if (document.getElementById('sync' + otherIdx).checked) {
+                            const target = otherC.getObjects()[objIdx];
+                            if (target) otherC.remove(target);
+                        }
+                    });
+                });
+                c.discardActiveObject().renderAll();
+                canvases.forEach(otherC => otherC.renderAll());
+            }
+        }); 
+    }
+
+    async function loadSystemFonts() { if (!window.queryLocalFonts) return alert("크롬 브라우저에서만 지원되는 기능입니다."); try { const fonts = await window.queryLocalFonts(); const fontSelect = document.getElementById('fontSelect'); const uniqueFonts = [...new Set(fonts.map(f => f.family))].sort(); uniqueFonts.forEach(font => { const opt = document.createElement('option'); opt.value = font; opt.textContent = font; fontSelect.appendChild(opt); }); alert("PC 글꼴 동기화 완료!"); } catch (e) { alert("글꼴 접근 권한이 거부되었습니다."); } }
 
     async function exportLossless() {
-        const btn = event.target; btn.innerText = "🚀 고해상도 생성 중...";
+        const btn = event.target; 
+        const originalText = btn.innerText;
+        btn.innerText = "🚀 생성 중...";
         const { jsPDF } = window.jspdf;
         const pdf = new jsPDF('p', 'mm', 'a4');
         const exportCanvas = document.createElement('canvas');
@@ -191,7 +283,6 @@
         const leftPx = 6.5 * mmToPx;
         const colGapPx = 4 * mmToPx;
         
-        // 도련 수치 (사방 1mm)
         const isBleed = document.getElementById('bleedToggle').checked;
         const bleedPx = isBleed ? 1 * mmToPx : 0; 
 
@@ -205,16 +296,19 @@
             tempCanvas.height = sizePx + (bleedPx * 2);
             const tempCtx = tempCanvas.getContext('2d');
 
-            // [PDF 저장 시에만 도련 적용] 클리핑 없이 이미지 전체를 출력 크기에 맞춰 확장
-            const dataURL = canvases[i].toDataURL({ format: 'png', multiplier: (sizePx / 238), enableRetinaScaling: true });
+            const dataURL = canvases[i].toDataURL({ 
+                format: 'png', 
+                multiplier: (sizePx / 238), 
+                enableRetinaScaling: true 
+            });
             const img = await new Promise(res => { const img = new Image(); img.onload = () => res(img); img.src = dataURL; });
             
             tempCtx.drawImage(img, 0, 0, tempCanvas.width, tempCanvas.height);
             ctx.drawImage(tempCanvas, targetX - bleedPx, targetY - bleedPx);
         }
-        pdf.addImage(exportCanvas.toDataURL('image/jpeg', 0.98), 'JPEG', 0, 0, 210, 297);
-        pdf.save('sticker_V28.9.pdf');
-        btn.innerText = "💾 초고화질 PDF 저장";
+        pdf.addImage(exportCanvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, 210, 297);
+        pdf.save('sticker_V28.9_won.pdf');
+        btn.innerText = originalText;
     }
 
     function initDraggable(el) {
@@ -225,7 +319,7 @@
             document.onmouseup = () => { document.onmousemove = null; };
         };
     }
-    function undo() { alert("실행 취소는 준비 중입니다."); }
+    function undo() { alert("준비 중인 기능입니다."); }
 </script>
 </body>
 </html>
